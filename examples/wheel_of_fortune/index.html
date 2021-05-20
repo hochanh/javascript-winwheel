@@ -3,15 +3,24 @@
         <title>HTML5 Canvas Winning Wheel</title>
         <link rel="stylesheet" href="main.css" type="text/css" />
         <script type="text/javascript" src="./Winwheel.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/gsap/3.6.1/gsap.min.js"></script>
     </head>
-    <body>
+    <body style="background: gray;">
         <div align="center">
             <h1>Winwheel.js example wheel</h1>
 
             <button id="spin_button" onClick="startSpin();">
                 SPIN THE WHEEL
             </button>
+
+<textarea rows="20" cols="100" id="data">
+100
+200
+300
+400
+500
+600
+</textarea>
 
             <div width="438" height="582" class="the_wheel" align="center" valign="center">
                 <canvas id="canvas" width="434" height="434">
@@ -21,50 +30,42 @@
         </div>
 
         <script>
-            // Create new wheel object specifying the parameters at creation time.
-            let theWheel = new Winwheel({
-                'outerRadius'     : 212,        // Set outer radius so wheel fits inside the background.
-                'innerRadius'     : 25,         // Make wheel hollow so segments don't go all way to center.
-                'textFontSize'    : 24,         // Set default font size for the segments.
-                'textOrientation' : 'vertical', // Make text vertial so goes down from the outside of wheel.
-                'textAlignment'   : 'outer',    // Align text to outside of wheel.
-                'numSegments'     : 21,         // Specify number of segments.
-                'segments'        :             // Define segments including colour and text.
-                [                               // font size and test colour overridden on backrupt segments.
-                   {'fillStyle' : '#ee1c24', 'text' : '300'},
-                   {'fillStyle' : '#3cb878', 'text' : '450'},
-                   {'fillStyle' : '#f6989d', 'text' : '600'},
-                   {'fillStyle' : '#00aef0', 'text' : '750'},
-                   {'fillStyle' : '#f26522', 'text' : '500'},
-                   {'fillStyle' : '#e70697', 'text' : '3000'},
-                   {'fillStyle' : '#fff200', 'text' : '600'},
-                   {'fillStyle' : '#f6989d', 'text' : '700'},
-                   {'fillStyle' : '#ee1c24', 'text' : '350'},
-                   {'fillStyle' : '#3cb878', 'text' : '500'},
-                   {'fillStyle' : '#f26522', 'text' : '800'},
-                   {'fillStyle' : '#a186be', 'text' : '300'},
-                   {'fillStyle' : '#fff200', 'text' : '400'},
-                   {'fillStyle' : '#00aef0', 'text' : '650'},
-                   {'fillStyle' : '#ee1c24', 'text' : '1000'},
-                   {'fillStyle' : '#f6989d', 'text' : '500'},
-                   {'fillStyle' : '#f26522', 'text' : '400'},
-                   {'fillStyle' : '#3cb878', 'text' : '900'},
-                   {'fillStyle' : '#a186be', 'text' : '600'},
-                   {'fillStyle' : '#fff200', 'text' : '700'},
-                   {'fillStyle' : '#00aef0', 'text' : '800'},
-                ],
-                'animation' :           // Specify the animation to use.
-                {
-                    'type'     : 'spinToStop',
-                    'duration' : 10,    // Duration in seconds.
-                    'spins'    : 3,     // Default number of complete spins.
-                    'easing': 'easeInOut',
-                    'callbackFinished' : alertPrize,
-                    'callbackAfter'    : showSegment,
-                    'callbackSound'    : playSound,   // Function to call when the tick sound is to be triggered.
-                    'soundTrigger'     : 'segment'        // Specify pins are to trigger the sound, the other option is 'segment'.
-                },
-            });
+            function drawWheel() {
+                const data = document.getElementById('data')
+                    .value
+                    .trim()
+                    .split('\n')
+                    .map((d) => d.trim())
+                    .filter((d) => d);
+                const segments = data.map((d, i) => ({ fillStyle: `hsl(${i / data.length * 360}, 98%, 50%)`, text: d }));
+
+                // Create new wheel object specifying the parameters at creation time.
+                return new Winwheel({
+                    'pointerAngle'    : 315,
+                    'textFillStyle'   : 'white',
+                    'outerRadius'     : 212,        // Set outer radius so wheel fits inside the background.
+                    'innerRadius'     : 25,         // Make wheel hollow so segments don't go all way to center.
+                    'textFontSize'    : 24,         // Set default font size for the segments.
+                    'textOrientation' : 'vertical', // Make text vertial so goes down from the outside of wheel.
+                    'textAlignment'   : 'outer',    // Align text to outside of wheel.
+                    'numSegments'     : segments.length, // Specify number of segments.
+                    'segments'        : segments, // Define segments including colour and text.
+                    'animation' :           // Specify the animation to use.
+                    {
+                        'type'     : 'spinToStop',
+                        'duration' : 10,    // Duration in seconds.
+                        'spins'    : 3,     // Default number of complete spins.
+                        'easing': 'easeNone',
+                        'stopAngle': 30,
+                        'callbackFinished' : alertPrize,
+                        'callbackAfter'    : showSegment,
+                        'callbackSound'    : playSound,   // Function to call when the tick sound is to be triggered.
+                        'soundTrigger'     : 'segment'        // Specify pins are to trigger the sound, the other option is 'segment'.
+                    },
+                });
+            }
+
+            let theWheel = drawWheel();
 
             // Loads the tick audio sound in to an audio object.
             const audio = new Audio('tick.mp3');
@@ -91,8 +92,10 @@
             // -------------------------------------------------------
             // Click handler for spin button.
             // -------------------------------------------------------
-            function startSpin()
-            {
+            function startSpin() {
+                theWheel.clearCanvas();
+                theWheel = drawWheel();
+
                 if (wheelSpinning == false) {
                     theWheel.animation.spins = 6;
                     theWheel.startAnimation();
@@ -122,6 +125,7 @@
 
             function showSegment(segment) {
                 document.getElementById('spin_button').innerText = segment.text;
+                document.getElementById('spin_button').style.backgroundColor = segment.fillStyle;
             }
         </script>
     </body>
