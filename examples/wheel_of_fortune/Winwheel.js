@@ -51,14 +51,12 @@ function Winwheel(options, drawWheel)
         'textStrokeStyle'   : null,         // Basically the line colour for segment text, only looks good for large text so off by default.
         'textLineWidth'     : 1,            // Width of the lines around the text. Even though this defaults to 1, a line is only drawn if textStrokeStyle specified.
         'fillStyle'         : 'silver',     // The segment background colour.
-        'strokeStyle'       : 'black',      // Segment line colour. Again segment lines only drawn if this is specified.
+        'strokeStyle'       : 'white',      // Segment line colour. Again segment lines only drawn if this is specified.
         'lineWidth'         : 1,            // Width of lines around segments.
         'clearTheCanvas'    : true,         // When set to true the canvas will be cleared before the wheel is drawn.
         'imageOverlay'      : false,        // If set to true in image drawing mode the outline of the segments will be displayed over the image. Does nothing in code drawMode.
         'drawText'          : true,         // By default the text of the segments is rendered in code drawMode and not in image drawMode.
         'pointerAngle'      : 0,            // Location of the pointer that indicates the prize when wheel has stopped. Default is 0 so the (corrected) 12 o'clock position.
-        'wheelImage'        : null,         // Must be set to image data in order to use image to draw the wheel - drawMode must also be 'image'.
-        'imageDirection'    : 'N',          // Used when drawMode is segmentImage. Default is north, can also be (E)ast, (S)outh, (W)est.
         'responsive'        : false,        // If set to true the wheel will resize when the window first loads and also onResize.
         'scaleFactor'       : 1,            // Set by the responsive function. Used in many calculations to scale the wheel.
     };
@@ -154,45 +152,10 @@ function Winwheel(options, drawWheel)
         this.animation = new Animation();
     }
 
-    // ------------------------------------------
-    // If some pin options then create create a pin object and then pass them in.
-    if ((options != null) && (options['pins']) && (typeof(options['pins']) !== 'undefined')) {
-        this.pins = new Pin(options['pins']);
-    }
 
     // ------------------------------------------
-    // If the drawMode is image change some defaults provided a value has not been specified.
-    if ((this.drawMode == 'image') || (this.drawMode == 'segmentImage')) {
-        // Remove grey fillStyle.
-        if (typeof(options['fillStyle']) === 'undefined') {
-            this.fillStyle = null;
-        }
-
-        // Set strokeStyle to red.
-        if (typeof(options['strokeStyle']) === 'undefined') {
-            this.strokeStyle = 'red';
-        }
-
-        // Set drawText to false as we will assume any text is part of the image.
-        if (typeof(options['drawText']) === 'undefined') {
-            this.drawText = false;
-        }
-
-        // Also set the lineWidth to 1 so that segment overlay will look correct.
-        if (typeof(options['lineWidth']) === 'undefined') {
-            this.lineWidth = 1;
-        }
-
-        // Set drawWheel to false as normally the image needs to be loaded first.
-        if (typeof(drawWheel) === 'undefined') {
-            drawWheel = false;
-        }
-    } else {
-        // When in code drawMode the default is the wheel will draw.
-        if (typeof(drawWheel) === 'undefined') {
-            drawWheel = true;
-        }
-    }
+    // When in code drawMode the default is the wheel will draw.
+    drawWheel = true;
 
     // Create pointer guide.
     if ((options != null) && (options['pointerGuide']) && (typeof(options['pointerGuide']) !== 'undefined')) {
@@ -225,19 +188,6 @@ function Winwheel(options, drawWheel)
     // Finally if drawWheel is true then call function to render the wheel, segment text, overlay etc.
     if (drawWheel == true) {
         this.draw(this.clearTheCanvas);
-    } else if (this.drawMode == 'segmentImage') {
-        // If segment image then loop though all the segments and load the images for them setting a callback
-        // which will call the draw function of the wheel once all the images have been loaded.
-        winwheelToDrawDuringAnimation = this;
-        winhweelAlreadyDrawn = false;
-
-        for (let y = 1; y <= this.numSegments; y ++) {
-            if (this.segments[y].image !== null) {
-                this.segments[y].imgData = new Image();
-                this.segments[y].imgData.onload = winwheelLoadedImage;
-                this.segments[y].imgData.src = this.segments[y].image;
-            }
-        }
     }
 }
 
@@ -317,119 +267,17 @@ Winwheel.prototype.draw = function(clearTheCanvas)
             this.clearCanvas();
         }
 
-        // Call functions to draw the segments and then segment text.
-        if (this.drawMode == 'image') {
-            // Draw the wheel by loading and drawing an image such as a png on the canvas.
-            this.drawWheelImage();
+        // The default operation is to draw the segments using code via the canvas arc() method.
+        this.drawSegments();
 
-            // If we are to draw the text, do so before the overlay is drawn
-            // as this allows the overlay to be used to create some interesting effects.
-            if (this.drawText == true) {
-                this.drawSegmentText();
-            }
-
-            // If image overlay is true then call function to draw the segments over the top of the image.
-            // This is useful during development to check alignment between where the code thinks the segments are and where they appear on the image.
-            if (this.imageOverlay == true) {
-                this.drawSegments();
-            }
-        } else if (this.drawMode == 'segmentImage') {
-            // Draw the wheel by rendering the image for each segment.
-            this.drawSegmentImages();
-
-            // If we are to draw the text, do so before the overlay is drawn
-            // as this allows the overlay to be used to create some interesting effects.
-            if (this.drawText == true) {
-                this.drawSegmentText();
-            }
-
-            // If image overlay is true then call function to draw the segments over the top of the image.
-            // This is useful during development to check alignment between where the code thinks the segments are and where they appear on the image.
-            if (this.imageOverlay == true) {
-                this.drawSegments();
-            }
-        } else {
-            // The default operation is to draw the segments using code via the canvas arc() method.
-            this.drawSegments();
-
-            // The text is drawn on top.
-            if (this.drawText == true) {
-                this.drawSegmentText();
-            }
-        }
-
-        // If this class has pins.
-        if (typeof this.pins !== 'undefined') {
-            // If they are to be visible then draw them.
-            if (this.pins.visible == true) {
-                this.drawPins();
-            }
+        // The text is drawn on top.
+        if (this.drawText == true) {
+            this.drawSegmentText();
         }
 
         // If pointer guide is display property is set to true then call function to draw the pointer guide.
         if (this.pointerGuide.display == true) {
             this.drawPointerGuide();
-        }
-    }
-}
-
-// ====================================================================================================================
-// Draws the pins around the outside of the wheel.
-// ====================================================================================================================
-Winwheel.prototype.drawPins = function()
-{
-    if ((this.pins) && (this.pins.number)) {
-        // Get scaled centerX and centerY to use in the code below so pins will draw responsively too.
-        let centerX = (this.centerX * this.scaleFactor);
-        let centerY = (this.centerY * this.scaleFactor);
-        let outerRadius = (this.outerRadius * this.scaleFactor);
-
-        // Check if the pin's size is to be responsive too, if so set the pinOuterRadius to a scaled version number.
-        let pinOuterRadius = this.pins.outerRadius;
-        let pinMargin = this.pins.margin;
-
-        if (this.pins.responsive) {
-            pinOuterRadius = (this.pins.outerRadius * this.scaleFactor);
-            pinMargin = (this.pins.margin * this.scaleFactor);
-        }
-
-        // Work out the angle to draw each pin a which is simply 360 / the number of pins as they space evenly around.
-        //++ There is a slight oddity with the pins in that there is a pin at 0 and also one at 360 and these will be drawn
-        //++ directly over the top of each other. Also pins are 0 indexed which could possibly cause some confusion
-        //++ with the getCurrentPin function - for now this is just used for audio so probably not a problem.
-        let pinSpacing = (360 / this.pins.number);
-
-        for(let i=1; i<=this.pins.number; i ++) {
-            this.ctx.save();
-
-            // Set the stroke style and line width.
-            this.ctx.strokeStyle = this.pins.strokeStyle;
-            this.ctx.lineWidth = this.pins.lineWidth;
-            this.ctx.fillStyle = this.pins.fillStyle;
-
-            // Move to the center.
-            this.ctx.translate(centerX, centerY);
-
-            // Rotate to to the pin location which is i * the pinSpacing.
-            this.ctx.rotate(this.degToRad(i * pinSpacing + this.rotationAngle));
-
-            // Move back out.
-            this.ctx.translate(-centerX, -centerY);
-
-            // Create a path for the pin circle.
-            this.ctx.beginPath();
-            // x, y, radius, startAngle, endAngle.
-            this.ctx.arc(centerX,(centerY - outerRadius) + pinOuterRadius + pinMargin, pinOuterRadius, 0, 2*Math.PI);
-
-            if (this.pins.fillStyle) {
-                this.ctx.fill();
-            }
-
-            if (this.pins.strokeStyle) {
-                this.ctx.stroke();
-            }
-
-            this.ctx.restore();
         }
     }
 }
@@ -467,147 +315,6 @@ Winwheel.prototype.drawPointerGuide = function()
     }
 }
 
-// ====================================================================================================================
-// This function takes an image such as PNG and draws it on the canvas making its center at the centerX and center for the wheel.
-// ====================================================================================================================
-Winwheel.prototype.drawWheelImage = function()
-{
-    // Double check the wheelImage property of this class is not null. This does not actually detect that an image
-    // source was set and actually loaded so might get error if this is not the case. This is why the initial call
-    // to draw() should be done from a wheelImage.onload callback as detailed in example documentation.
-    if (this.wheelImage != null) {
-        // Get the centerX and centerY in to variables, adjust by the scaleFactor.
-        let centerX = (this.centerX * this.scaleFactor);
-        let centerY = (this.centerY * this.scaleFactor);
-
-        // Get the scaled width and height of the image.
-        let scaledWidth = (this.wheelImage.width * this.scaleFactor);
-        let scaledHeight = (this.wheelImage.height * this.scaleFactor);
-
-        // Work out the correct X and Y to draw the image at. We need to get the center point of the image
-        // aligned over the center point of the wheel, we can't just place it at 0, 0.
-        let imageLeft = (centerX - (scaledWidth / 2));
-        let imageTop  = (centerY - (scaledHeight / 2));
-
-        // Rotate and then draw the wheel.
-        // We must rotate by the rotationAngle before drawing to ensure that image wheels will spin.
-        this.ctx.save();
-        this.ctx.translate(centerX, centerY);
-        this.ctx.rotate(this.degToRad(this.rotationAngle));
-        this.ctx.translate(-centerX, -centerY);
-
-        // Draw the image passing the scaled width and height which will ensure the image will be responsive.
-        this.ctx.drawImage(this.wheelImage, imageLeft, imageTop, scaledWidth, scaledHeight);
-
-        this.ctx.restore();
-    }
-}
-
-// ====================================================================================================================
-// This function draws the wheel on the canvas by rendering the image for each segment.
-// ====================================================================================================================
-Winwheel.prototype.drawSegmentImages = function()
-{
-    // Again check have context in case this function was called directly and not via draw function.
-    if (this.ctx) {
-        // Get the centerX and centerY of the wheel adjusted with the scale factor.
-        let centerX = (this.centerX * this.scaleFactor);
-        let centerY = (this.centerY * this.scaleFactor);
-
-        // Draw the segments if there is at least one in the segments array.
-        if (this.segments) {
-            // Loop though and output all segments - position 0 of the array is not used, so start loop from index 1
-            // this is to avoid confusion when talking about the first segment.
-            for (let x = 1; x <= this.numSegments; x ++) {
-                // Get the segment object as we need it to read options from.
-                let seg = this.segments[x];
-
-                // Check image has loaded so a property such as height has a value.
-                if (seg.imgData.height) {
-                    // Work out the correct X and Y to draw the image at which depends on the direction of the image.
-                    // Images can be created in 4 directions. North, South, East, West.
-                    // North: Outside at top, inside at bottom. Sits evenly over the 0 degrees angle.
-                    // South: Outside at bottom, inside at top. Sits evenly over the 180 degrees angle.
-                    // East: Outside at right, inside at left. Sits evenly over the 90 degrees angle.
-                    // West: Outside at left, inside at right. Sits evenly over the 270 degrees angle.
-                    let imageLeft = 0;
-                    let imageTop = 0;
-                    let imageAngle = 0;
-                    let imageDirection = '';
-
-                    // Get scaled width and height of the segment image.
-                    let scaledWidth = (seg.imgData.width * this.scaleFactor);
-                    let scaledHeight = (seg.imgData.height * this.scaleFactor);
-
-                    if (seg.imageDirection !== null) {
-                        imageDirection = seg.imageDirection;
-                    } else {
-                        imageDirection = this.imageDirection;
-                    }
-
-                    if (imageDirection == 'S') {
-                        // Left set so image sits half/half over the 180 degrees point.
-                        imageLeft = (centerX - (scaledWidth / 2));
-
-                        // Top so image starts at the centerY.
-                        imageTop = centerY;
-
-                        // Angle to draw the image is its starting angle + half its size.
-                        // Here we add 180 to the angle to the segment is poistioned correctly.
-                        imageAngle = (seg.startAngle + 180 + ((seg.endAngle - seg.startAngle) / 2));
-                    } else if (imageDirection == 'E') {
-                        // Left set so image starts and the center point.
-                        imageLeft = centerX;
-
-                        // Top is so that it sits half/half over the 90 degree point.
-                        imageTop = (centerY - (scaledHeight / 2));
-
-                        // Again get the angle in the center of the segment and add it to the rotation angle.
-                        // this time we need to add 270 to that to the segment is rendered the correct place.
-                        imageAngle = (seg.startAngle + 270 + ((seg.endAngle - seg.startAngle) / 2));
-                    } else if (imageDirection == 'W') {
-                        // Left is the centerX minus the width of the image.
-                        imageLeft = (centerX - scaledWidth);
-
-                        // Top is so that it sits half/half over the 270 degree point.
-                        imageTop = (centerY - (scaledHeight / 2));
-
-                        // Again get the angle in the center of the segment and add it to the rotation angle.
-                        // this time we need to add 90 to that to the segment is rendered the correct place.
-                        imageAngle = (seg.startAngle + 90 + ((seg.endAngle - seg.startAngle) / 2));
-                    } else {
-                        // North is the default.
-                        // Left set so image sits half/half over the 0 degrees point.
-                        imageLeft = (centerX - (scaledWidth / 2));
-
-                        // Top so image is its height out (above) the center point.
-                        imageTop = (centerY - scaledHeight);
-
-                        // Angle to draw the image is its starting angle + half its size.
-                        // this sits it half/half over the center angle of the segment.
-                        imageAngle = (seg.startAngle + ((seg.endAngle - seg.startAngle) / 2));
-                    }
-
-                    // --------------------------------------------------
-                    // Rotate to the position of the segment and then draw the image.
-                    this.ctx.save();
-                    this.ctx.translate(centerX, centerY);
-
-                    // So math here is the rotation angle of the wheel plus half way between the start and end angle of the segment.
-                    this.ctx.rotate(this.degToRad(this.rotationAngle + imageAngle));
-                    this.ctx.translate(-centerX, -centerY);
-
-                    // Draw the image passing the scaled width and height so that it can be responsive.
-                    this.ctx.drawImage(seg.imgData, imageLeft, imageTop, scaledWidth, scaledHeight);
-
-                    this.ctx.restore();
-                } else {
-                    console.log('Segment ' + x + ' imgData is not loaded');
-                }
-            }
-        }
-    }
-}
 
 // ====================================================================================================================
 // This function draws the wheel on the page by rendering the segments on the canvas.
@@ -1642,53 +1349,6 @@ Winwheel.prototype.getIndicatedSegmentNumber = function()
     return indicatedPrize;
 }
 
-// ====================================================================================================================
-// Works out what Pin around the wheel is considered the current one which is the one which just passed the pointer.
-// Used to work out if the pin has changed during the animation to tigger a sound.
-// ====================================================================================================================
-Winwheel.prototype.getCurrentPinNumber = function()
-{
-    let currentPin = 0;
-
-    if (this.pins) {
-        let rawAngle = this.getRotationPosition();
-
-        // Now we have the angle of the wheel, but we need to take in to account where the pointer is because
-        // will not always be at the 12 o'clock 0 degrees location.
-        let relativeAngle = Math.floor(this.pointerAngle - rawAngle);
-
-        if (relativeAngle < 0) {
-            relativeAngle = 360 - Math.abs(relativeAngle);
-        }
-
-        // Work out the angle of the pins as this is simply 360 / the number of pins as they space evenly around.
-        let pinSpacing = (360 / this.pins.number);
-        let totalPinAngle = 0;
-
-        // Now we can work out the pin by seeing what pins relativeAngle is between.
-        for (let x = 0; x < (this.pins.number); x ++) {
-            if ((relativeAngle >= totalPinAngle) && (relativeAngle <= (totalPinAngle + pinSpacing))) {
-                currentPin = x;
-                break;
-            }
-
-            totalPinAngle += pinSpacing;
-        }
-
-        // Now if rotating clockwise we must add 1 to the current pin as we want the pin which has just passed
-        // the pointer to be returned as the current pin, not the start of the one we are between.
-        if (this.animation.direction == 'clockwise') {
-            currentPin ++;
-
-            if (currentPin > this.pins.number) {
-                currentPin = 0;
-            }
-        }
-    }
-
-    return currentPin;
-}
-
 // ==================================================================================================================================================
 // Returns the rotation angle of the wheel corrected to 0-360 (i.e. removes all the multiples of 360).
 // ==================================================================================================================================================
@@ -1951,42 +1611,6 @@ Winwheel.prototype.getRandomForSegment = function(segmentNumber)
 }
 
 // ====================================================================================================================
-// Class for the wheel pins.
-// ====================================================================================================================
-function Pin(options)
-{
-    let defaultOptions = {
-        'visible'        : true,     // In future there might be some functionality related to the pins even if they are not displayed.
-        'number'         : 36,       // The number of pins. These are evenly distributed around the wheel.
-        'outerRadius'    : 3,        // Radius of the pins which determines their size.
-        'fillStyle'      : 'grey',   // Fill colour of the pins.
-        'strokeStyle'    : 'black',  // Line colour of the pins.
-        'lineWidth'      : 1,        // Line width of the pins.
-        'margin'         : 3,        // The space between outside edge of the wheel and the pins.
-        'responsive'     : false,    // If set to true the diameter of the pin will resize when the wheel is responsive.
-    };
-
-    // Now loop through the default options and create properties of this class set to the value for
-    // the option passed in if a value was, or if not then set the value of the default.
-    for (let key in defaultOptions) {
-        if ((options != null) && (typeof(options[key]) !== 'undefined')) {
-            this[key] = options[key];
-        } else {
-            this[key] = defaultOptions[key];
-        }
-    }
-
-    // Also loop though the passed in options and add anything specified not part of the class in to it as a property.
-    if (options != null) {
-        for (let key in options) {
-            if (typeof(this[key]) === 'undefined') {
-                this[key] = options[key];
-            }
-        }
-    }
-}
-
-// ====================================================================================================================
 // Class for the wheel spinning animation which like a segment becomes a property of the wheel.
 // ====================================================================================================================
 function Animation(options)
@@ -2008,7 +1632,6 @@ function Animation(options)
         'callbackBefore'    : null,            // Function to callback before the wheel is drawn each animation loop.
         'callbackAfter'     : null,            // Function to callback after the wheel is drawn each animation loop.
         'callbackSound'     : null,            // Function to callback if a sound should be triggered on change of segment or pin.
-        'soundTrigger'      : 'segment'        // Sound trigger type. Default is segment which triggers when segment changes, can be pin if to trigger when pin passes the pointer.
     };
 
     // Now loop through the default options and create properties of this class set to the value for
@@ -2055,7 +1678,6 @@ function Segment(options)
         'textStrokeStyle'   : null,
         'textLineWidth'     : null,
         'image'             : null, // Name/path to the image
-        'imageDirection'    : null, // Direction of the image, can be set globally for the whole wheel.
         'imgData'           : null  // Image object created here and loaded with image data.
     };
 
@@ -2084,27 +1706,6 @@ function Segment(options)
     // the values are updated every time the updateSegmentSizes() function is called.
     this.startAngle = 0;
     this.endAngle   = 0;
-}
-
-// ====================================================================================================================
-// Changes an image for a segment by setting a callback to render the wheel once the image has loaded.
-// ====================================================================================================================
-Segment.prototype.changeImage = function(image, imageDirection)
-{
-    // Change image name, blank image data.
-    this.image = image;
-    this.imgData = null;
-
-    // Set direction.
-    if (imageDirection) {
-        this.imageDirection = imageDirection;
-    }
-
-    // Set imgData to a new image object, change set callback and change src (just like in wheel constructor).
-    winhweelAlreadyDrawn = false;
-    this.imgData = new Image();
-    this.imgData.onload = winwheelLoadedImage;
-    this.imgData.src = this.image;
 }
 
 // ====================================================================================================================
@@ -2206,14 +1807,7 @@ function winwheelTriggerSound()
     let currentTriggerNumber = 0;
 
     // Now figure out if the sound callback should be called depending on the sound trigger type.
-    if (winwheelToDrawDuringAnimation.animation.soundTrigger == 'pin') {
-        // So for the pin type we need to work out which pin we are between.
-        currentTriggerNumber = winwheelToDrawDuringAnimation.getCurrentPinNumber();
-    } else {
-        // Check on the change of segment by working out which segment we are in.
-        // We can utilise the existing getIndiatedSegmentNumber function.
-        currentTriggerNumber = winwheelToDrawDuringAnimation.getIndicatedSegmentNumber();
-    }
+    currentTriggerNumber = winwheelToDrawDuringAnimation.getIndicatedSegmentNumber();
 
     // If the current number is not the same as last time then call the sound callback.
     if (currentTriggerNumber != winwheelToDrawDuringAnimation._lastSoundTriggerNumber) {
