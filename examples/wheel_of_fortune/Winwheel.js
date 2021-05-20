@@ -54,10 +54,9 @@ function Winwheel(options, drawWheel)
         'strokeStyle'       : 'white',      // Segment line colour. Again segment lines only drawn if this is specified.
         'lineWidth'         : 1,            // Width of lines around segments.
         'clearTheCanvas'    : true,         // When set to true the canvas will be cleared before the wheel is drawn.
-        'imageOverlay'      : false,        // If set to true in image drawing mode the outline of the segments will be displayed over the image. Does nothing in code drawMode.
         'drawText'          : true,         // By default the text of the segments is rendered in code drawMode and not in image drawMode.
         'pointerAngle'      : 0,            // Location of the pointer that indicates the prize when wheel has stopped. Default is 0 so the (corrected) 12 o'clock position.
-        'responsive'        : false,        // If set to true the wheel will resize when the window first loads and also onResize.
+        'responsive'        : true,        // If set to true the wheel will resize when the window first loads and also onResize.
         'scaleFactor'       : 1,            // Set by the responsive function. Used in many calculations to scale the wheel.
     };
 
@@ -1676,8 +1675,6 @@ function Segment(options)
         'textFillStyle'     : null,
         'textStrokeStyle'   : null,
         'textLineWidth'     : null,
-        'image'             : null, // Name/path to the image
-        'imgData'           : null  // Image object created here and loaded with image data.
     };
 
     // Now loop through the default options and create properties of this class set to the value for
@@ -1842,37 +1839,6 @@ function winwheelStopAnimation(canCallback)
             } else {
                 eval(callback);
             }
-        }
-    }
-}
-
-// ====================================================================================================================
-// Called after the image has loaded for each segment. Once all the images are loaded it then calls the draw function
-// on the wheel to render it. Used in constructor and also when a segment image is changed.
-// ====================================================================================================================
-let winhweelAlreadyDrawn = false;
-
-function winwheelLoadedImage()
-{
-    // Prevent multiple drawings of the wheel which ocurrs without this check due to timing of function calls.
-    if (winhweelAlreadyDrawn == false) {
-        // Set to 0.
-        let winwheelImageLoadCount = 0;
-
-        // Loop though all the segments of the wheel and check if image data loaded, if so increment counter.
-        for (let i = 1; i <= winwheelToDrawDuringAnimation.numSegments; i ++) {
-            // Check the image data object is not null and also that the image has completed loading by checking
-            // that a property of it such as the height has some sort of true value.
-            if ((winwheelToDrawDuringAnimation.segments[i].imgData != null) && (winwheelToDrawDuringAnimation.segments[i].imgData.height)) {
-                winwheelImageLoadCount ++;
-            }
-        }
-
-        // If number of images loaded matches the segments then all the images for the wheel are loaded.
-        if (winwheelImageLoadCount == winwheelToDrawDuringAnimation.numSegments) {
-            // Call draw function to render the wheel.
-            winhweelAlreadyDrawn = true;
-            winwheelToDrawDuringAnimation.draw();
         }
     }
 }
