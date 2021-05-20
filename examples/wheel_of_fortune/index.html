@@ -37,7 +37,11 @@
                     .split('\n')
                     .map((d) => d.trim())
                     .filter((d) => d);
-                const segments = data.map((d, i) => ({ fillStyle: `hsla(${i / data.length * 360}, 70%, 50%, 1)`, text: d }));
+                const segments = data.map((d, i) => ({
+                    fillStyle: `hsla(${i / data.length * 360}, 80%, 50%, 1)`,
+                    // strokeStyle: `hsla(${i / data.length * 360}, 80%, 50%, 1)`,
+                    text: d,
+                }));
 
                 // Create new wheel object specifying the parameters at creation time.
                 return new Winwheel({
